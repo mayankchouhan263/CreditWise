@@ -14,30 +14,28 @@ _model      = None
 _scaler     = None
 _load_error = None
 
+# ── Load model once at startup ────────────────────────────────────────────────
+_model      = None
+_load_error = None
+
 def _load_model():
-    global _model, _scaler, _load_error
+    global _model, _load_error
     if _model is not None:
-        return _model, _scaler, None
+        return _model, None
     if _load_error is not None:
-        return None, None, _load_error
+        return None, _load_error
     try:
         import joblib
-        model_path  = settings.MODEL_PATH
-        scaler_path = settings.SCALER_PATH
+        model_path = settings.MODEL_PATH
         if not os.path.exists(model_path):
             _load_error = f"loan_model.pkl not found at: {model_path}"
-            return None, None, _load_error
-        if not os.path.exists(scaler_path):
-            _load_error = f"scaler.pkl not found at: {scaler_path}"
-            return None, None, _load_error
-        _model  = joblib.load(model_path)
-        _scaler = joblib.load(scaler_path)
+            return None, _load_error
+        _model = joblib.load(model_path)
         print(f"[CreditWise] Model loaded from {model_path}")
-        return _model, _scaler, None
+        return _model, None
     except Exception as e:
         _load_error = f"Failed to load model: {str(e)}"
-        return None, None, _load_error
-
+        return None, _load_error
 
 FEATURE_NAMES = [
     'Applicant_Income', 'Coapplicant_Income', 'Age', 'Dependents', 'Existing_Loans',
@@ -152,7 +150,7 @@ def predict(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST request required.'}, status=405)
 
-    model, scaler, load_err = _load_model()
+    model, load_err = _load_model()
     if load_err:
         return JsonResponse({'error': load_err}, status=500)
 
@@ -163,9 +161,9 @@ def predict(request):
 
     try:
         features, meta  = _build_features(data)
-        features_scaled = scaler.transform(features)
-        prob_raw        = model.predict_proba(features_scaled)[0][1]
+        prob_raw        = model.predict_proba(features)[0][1]
         probability     = round(prob_raw * 100)
+
     except Exception as e:
         return JsonResponse({'error': f'Prediction failed: {str(e)}'}, status=500)
 

@@ -34,3 +34,5 @@ Desktop.ini
 # Large data files
 ML/Data/*.csv
 *.csv
+ML/Data/Processed_loan_approval_data.csv
+ML/Data/loan_approval_data.csv
